@@ -1,0 +1,16 @@
+[project]
+name = "drift-debugger"
+version = "0.1.0"
+description = "ML Training Drift Forensics CLI - Tell you why your training changed."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "typer[all]",
+    "torch>=2.0.0",   # 實際使用時建議固定版本或讓用戶自行安裝 CUDA 版
+]
+
+[project.scripts]
+drift = "drift_debugger.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
