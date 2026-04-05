@@ -1,0 +1,5 @@
+cd examples/drift_demo
+bash run_demo.sh
+
+pip install -e .
+（建議在有 CUDA 的環境下使用）
