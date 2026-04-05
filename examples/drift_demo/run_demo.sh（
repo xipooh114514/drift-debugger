@@ -1,0 +1,12 @@
+#!/bin/bash
+echo "=== Drift Debugger Killer Demo ==="
+echo "Running deterministic version (Run A)..."
+python train.py --deterministic --epochs 3
+
+echo -e "\nRunning non-deterministic version (Run B)..."
+python train.py --deterministic=false --epochs 3
+
+echo -e "\n=== Demo completed ==="
+echo "Now run:"
+echo "drift diff runs/run_*.json runs/run_*.json"
+echo "(請替換為實際產生的兩個 run_*.json 檔名)"
