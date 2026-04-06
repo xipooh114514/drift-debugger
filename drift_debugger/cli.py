@@ -59,3 +59,12 @@ def inspect(
 
 if __name__ == "__main__":
     app()
+
+@app.command()
+def patch(
+    baseline: str = typer.Argument(...),
+    output: str = typer.Option("drift_patch.py")
+):
+    """Generate environment alignment patch"""
+    from .patcher import generate_patch
+    generate_patch(baseline, output)
