@@ -1,0 +1,237 @@
+drift-debugger/
+├── drift/
+│   ├── __init__.py
+│   ├── tracker.py
+│   ├── diff.py
+│   ├── patcher.py
+│   └── cli.py
+├── examples/
+│   ├── tf32_ghost.py
+│   └── train_with_patch.py
+├── scripts/
+│   └── tf32_fix_demo.sh
+├── setup.py
+└── README.md
+
+
+⸻
+
+🧾 README.md（最終版，可直接用）
+
+:::writing{variant=“standard” id=“48372”}
+
+🕵️ Drift-Debugger
+
+Catch and fix hidden numerical drift in ML training.
+
+⸻
+
+❓ Why this exists
+
+You fixed the seed.
+You used Docker.
+You ran the same code.
+
+And still:
+
+“Why is my loss different on another GPU?”
+
+Most tools (W&B, MLflow) tell you what changed.
+drift-debugger tells you:
+
+what invisible system states caused the divergence — and forces them back into alignment.
+
+⸻
+
+🔴 What causes drift?
+
+Even with identical code and seeds, results can diverge due to:
+	•	TF32 / FP16 precision differences
+	•	cuDNN non-deterministic kernels
+	•	GPU architecture (A100 vs 4090)
+	•	Hidden backend flags (torch.backends.*)
+	•	CUDA / driver mismatches
+
+⸻
+
+🚀 Quick Start
+
+pip install drift-debugger
+
+1️⃣ Capture environment fingerprint
+
+drift run python train.py
+
+→ generates drift_fingerprint.json
+
+⸻
+
+2️⃣ Find divergence
+
+drift diff runA.json runB.json
+
+Example output:
+
+⚠️ Divergence detected
+- tf32_allowed: True vs False
+- cudnn_deterministic: False vs True
+
+
+⸻
+
+3️⃣ Fix it (the key feature)
+
+drift patch runA.json
+
+This generates:
+
+drift_patch.py
+
+Then in your training script:
+
+import drift_patch
+
+✅ Your environment is now bitwise-aligned with the baseline.
+
+⸻
+
+🧪 Killer Demo: TF32 Drift
+
+python examples/tf32_ghost.py
+
+What it does:
+	•	Runs the same MNIST training twice
+	•	Same seed, same code
+	•	Only difference: TF32 ON vs OFF
+
+👉 Result: Loss diverges
+
+⸻
+
+🔁 Full Fix Demo (Recommended)
+
+Run:
+
+bash scripts/tf32_fix_demo.sh
+
+This demonstrates:
+	1.	Same code → different results
+	2.	Detect drift
+	3.	Apply patch
+	4.	Results become identical
+
+⸻
+
+🧩 From Drift → Determinism
+
+drift diff runA.json runB.json
+drift patch runA.json
+
+Then:
+
+import drift_patch
+
+👉 No more guessing hidden flags.
+
+⸻
+
+🔍 What we capture
+
+Layer	Example	Why it matters
+Software	torch / CUDA / cuDNN versions	Kernel behavior changes
+Execution	seed, tf32, deterministic flags	Silent precision tradeoffs
+Hardware	GPU model, compute capability	Floating point differences
+
+
+⸻
+
+⚠️ Limitations
+	•	Does not fix data-related randomness
+	•	Does not guarantee cross-framework reproducibility
+	•	Focused on PyTorch backend-level determinism
+
+⸻
+
+🤝 Contributing
+
+We’re looking for:
+	•	More real-world drift cases
+	•	Edge cases in distributed training
+	•	Backend quirks across GPU generations
+
+⸻
+
+💡 Philosophy
+
+This is not a framework.
+
+This is a debugging wrench for:
+
+“It worked yesterday. It doesn’t today.”
+
+⸻
+
+📌 TL;DR
+	•	drift diff → find hidden divergence
+	•	drift patch → force environment alignment
+	•	import drift_patch → fix it
+
+⸻
+
+🧠 Author Note
+
+Built out of frustration debugging reproducibility across machines.
+
+If you’ve ever said:
+
+“But the seed is fixed…”
+
+This tool is for you.
+:::
+
+⸻
+
+🧪 scripts/tf32_fix_demo.sh
+
+#!/bin/bash
+
+echo "=== Step 1: Baseline (TF32 OFF) ==="
+python examples/tf32_ghost.py --mode off > runA.log
+
+echo "=== Step 2: Drift (TF32 ON) ==="
+python examples/tf32_ghost.py --mode on > runB.log
+
+echo "=== Step 3: Diff ==="
+drift diff runA.json runB.json
+
+echo "=== Step 4: Generate Patch ==="
+drift patch runA.json
+
+echo "=== Step 5: Apply Patch ==="
+python examples/train_with_patch.py
+
+echo "=== Step 6: Verify ==="
+drift diff runA.json patched.json
+
+
+⸻
+
+🧪 examples/train_with_patch.py
+
+import drift_patch
+from tf32_ghost import main
+
+main()
+
+
+
+
+
+
+最近在 debug reproducibility 時發現，即使固定 seed + docker，不同 GPU / TF32 設定 still cause drift
+
+寫了一個小工具抓 torch backend flags，順便做 diff + patch
+
+有一個 tf32 demo 可以穩定重現 drift
+
+想問大家還有遇過哪些「seed fixed 但結果還是飄」的情境？
